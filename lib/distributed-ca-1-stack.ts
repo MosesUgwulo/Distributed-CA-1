@@ -3,9 +3,12 @@ import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apig from 'aws-cdk-lib/aws-apigateway';
 import { review } from '../seed/reviews';
 import { generateBatch } from '../shared/util';
 import * as custom from "aws-cdk-lib/custom-resources"
+import * as lambdanode from "aws-cdk-lib/aws-lambda-nodejs";
+
 
 
 export class DistributedCa1Stack extends cdk.Stack {
@@ -19,6 +22,20 @@ export class DistributedCa1Stack extends cdk.Stack {
       tableName: 'ReviewsTable',
     });
 
+    // Get all reviews lambda
+    const getAllReviewsFn = new lambdanode.NodejsFunction(this, "GetAllReviewsFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/getAllReviews.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+          TABLE_NAME: reviewsTable.tableName,
+          REGION: 'eu-west-1'
+      }
+    });
+
+    
     new custom.AwsCustomResource(this, "initReviewsDDBData", {
       onCreate: {
         service: "DynamoDB",
@@ -34,5 +51,27 @@ export class DistributedCa1Stack extends cdk.Stack {
         resources: [reviewsTable.tableArn],
     }),
   });
+
+  // Permissions
+  reviewsTable.grantReadData(getAllReviewsFn);
+
+  const api = new apig.RestApi(this, 'ReviewsApi', {
+    description: "Reviews API",
+    deployOptions: {
+      stageName: "dev",
+    },
+
+    defaultCorsPreflightOptions: {
+      allowHeaders: ["Content-Type", "X-Amz-Date"],
+      allowMethods: ["OPTIONS", "GET", "POST", "PUT", "DELETE"],
+      allowCredentials: true,
+      allowOrigins: ["*"],
+    }
+  });
+
+  const reviewsEndpoint = api.root.addResource('reviews');
+
+  // GET /reviews
+  reviewsEndpoint.addMethod('GET', new apig.LambdaIntegration(getAllReviewsFn, { proxy: true }));
 }
 }
