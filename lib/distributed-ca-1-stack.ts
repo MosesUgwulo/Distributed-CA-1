@@ -67,6 +67,19 @@ export class DistributedCa1Stack extends cdk.Stack {
       }
     });
 
+    // Get Reviews by reviewer name lambda
+    const getReviewByReviewerNameFn = new lambdanode.NodejsFunction(this, "GetReviewByReviewerNameFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/getReviewByReviewerName.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+          TABLE_NAME: reviewsTable.tableName,
+          REGION: 'eu-west-1'
+      }
+    });
+
     
     new custom.AwsCustomResource(this, "initReviewsDDBData", {
       onCreate: {
@@ -87,6 +100,7 @@ export class DistributedCa1Stack extends cdk.Stack {
   // Permissions
   reviewsTable.grantReadData(getAllReviewsFn);
   reviewsTable.grantReadData(getReviewByIDFn);
+  reviewsTable.grantReadData(getReviewByReviewerNameFn);
 
   reviewsTable.grantWriteData(addReviewFn);
 
@@ -108,6 +122,7 @@ export class DistributedCa1Stack extends cdk.Stack {
   const reviewsEndpoint = moviesEndpoint.addResource('reviews');
   const movieIdEndpoint = moviesEndpoint.addResource('{movieId}');
   const movieIdReviewsEndpoint = movieIdEndpoint.addResource('reviews');
+  const reviewerNameEndpoint = movieIdReviewsEndpoint.addResource('{reviewerName}');
 
   // GET /movies/reviews
   reviewsEndpoint.addMethod('GET', new apig.LambdaIntegration(getAllReviewsFn, { proxy: true }));
@@ -115,5 +130,7 @@ export class DistributedCa1Stack extends cdk.Stack {
   reviewsEndpoint.addMethod('POST', new apig.LambdaIntegration(addReviewFn, { proxy: true }));
   // GET /movies/{movieId}/reviews
   movieIdReviewsEndpoint.addMethod('GET', new apig.LambdaIntegration(getReviewByIDFn, { proxy: true }));
+  // GET /movies/{movieId}/reviews/{reviewerName}
+  reviewerNameEndpoint.addMethod('GET', new apig.LambdaIntegration(getReviewByReviewerNameFn, { proxy: true }));
 }
 }
