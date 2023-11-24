@@ -23,6 +23,11 @@ export class DistributedCa1Stack extends cdk.Stack {
       tableName: 'ReviewsTable',
     });
 
+    reviewsTable.addLocalSecondaryIndex({
+      indexName: "reviewerName",
+      sortKey: { name: "reviewerName", type: dynamodb.AttributeType.STRING },
+    })
+
     // Get all reviews lambda
     const getAllReviewsFn = new lambdanode.NodejsFunction(this, "GetAllReviewsFn", {
       architecture: lambda.Architecture.ARM_64,
@@ -41,6 +46,19 @@ export class DistributedCa1Stack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_16_X,
       entry: `${__dirname}/../lambdas/addReview.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+          TABLE_NAME: reviewsTable.tableName,
+          REGION: 'eu-west-1'
+      }
+    });
+
+    // Get reviews by ID lambda
+    const getReviewByIDFn = new lambdanode.NodejsFunction(this, "GetReviewByIDFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/getReviewByID.ts`,
       timeout: cdk.Duration.seconds(10),
       memorySize: 128,
       environment: {
@@ -68,6 +86,8 @@ export class DistributedCa1Stack extends cdk.Stack {
 
   // Permissions
   reviewsTable.grantReadData(getAllReviewsFn);
+  reviewsTable.grantReadData(getReviewByIDFn);
+
   reviewsTable.grantWriteData(addReviewFn);
 
   const api = new apig.RestApi(this, 'ReviewsApi', {
@@ -86,10 +106,14 @@ export class DistributedCa1Stack extends cdk.Stack {
 
   const moviesEndpoint = api.root.addResource('movies');
   const reviewsEndpoint = moviesEndpoint.addResource('reviews');
+  const movieIdEndpoint = moviesEndpoint.addResource('{movieId}');
+  const movieIdReviewsEndpoint = movieIdEndpoint.addResource('reviews');
 
-  // GET /reviews
+  // GET /movies/reviews
   reviewsEndpoint.addMethod('GET', new apig.LambdaIntegration(getAllReviewsFn, { proxy: true }));
-  // POST /reviews
+  // POST /movies/reviews
   reviewsEndpoint.addMethod('POST', new apig.LambdaIntegration(addReviewFn, { proxy: true }));
+  // GET /movies/{movieId}/reviews
+  movieIdReviewsEndpoint.addMethod('GET', new apig.LambdaIntegration(getReviewByIDFn, { proxy: true }));
 }
 }
