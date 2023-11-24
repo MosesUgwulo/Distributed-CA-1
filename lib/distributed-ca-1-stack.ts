@@ -18,6 +18,7 @@ export class DistributedCa1Stack extends cdk.Stack {
     const reviewsTable = new dynamodb.Table(this, 'ReviewsTable', {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: 'movieId', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'reviewDate', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       tableName: 'ReviewsTable',
     });
@@ -27,6 +28,19 @@ export class DistributedCa1Stack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_16_X,
       entry: `${__dirname}/../lambdas/getAllReviews.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+          TABLE_NAME: reviewsTable.tableName,
+          REGION: 'eu-west-1'
+      }
+    });
+
+    // Add Reviews lambda
+    const addReviewFn = new lambdanode.NodejsFunction(this, "AddReviewFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/addReview.ts`,
       timeout: cdk.Duration.seconds(10),
       memorySize: 128,
       environment: {
@@ -54,6 +68,7 @@ export class DistributedCa1Stack extends cdk.Stack {
 
   // Permissions
   reviewsTable.grantReadData(getAllReviewsFn);
+  reviewsTable.grantWriteData(addReviewFn);
 
   const api = new apig.RestApi(this, 'ReviewsApi', {
     description: "Reviews API",
@@ -69,9 +84,12 @@ export class DistributedCa1Stack extends cdk.Stack {
     }
   });
 
-  const reviewsEndpoint = api.root.addResource('reviews');
+  const moviesEndpoint = api.root.addResource('movies');
+  const reviewsEndpoint = moviesEndpoint.addResource('reviews');
 
   // GET /reviews
   reviewsEndpoint.addMethod('GET', new apig.LambdaIntegration(getAllReviewsFn, { proxy: true }));
+  // POST /reviews
+  reviewsEndpoint.addMethod('POST', new apig.LambdaIntegration(addReviewFn, { proxy: true }));
 }
 }
