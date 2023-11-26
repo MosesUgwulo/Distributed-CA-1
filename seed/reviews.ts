@@ -7,7 +7,7 @@ export const review : Review[] = [
     reviewerName: "Geronimo1967",
     rating: 6,
     content: "To be honest, there's very little new in this formulaic action adventure. It's the usual old who has got the launch codes mystery that sees Sly Stallone's \"Barney\" recruit his best mate \"Christmas\" (Jason Statham) and their lethal gang of expendables to thwart the ambitions of an unknown criminal mastermind who is hoping to arm a boat load of nuclear missiles and start WWIII. Thing is, tragedy strikes very early on in the film and \"Christmas\" is taken off the team that is sent to avenge that. Is he staying home to fester? Of course not, and lucky too - for soon he is trying to free his pals from captivity before all hell breaks loose. Plenty of pyrotechnics, a bit of contrived sexual chemistry (with Megan Fox's \"Gina\") and loads of bullets and missiles flying around keep the film moving along well enough, but the story is the thinnest of the thin; the baddie's identity is hardly a challenge to discover nor is the twist in the tale at the end remotely unexpected. Good to see that the acting colossus that is Dolph Lundgren is still getting on screen nowadays, but otherwise this really is unremarkable stuff that even the usually charismatic Statham can't really sustain.",
-    reviewDate: "2023/08/10",
+    reviewDate: "2022/08/10",
   },
 
   {
@@ -15,7 +15,7 @@ export const review : Review[] = [
     reviewerName: "msbreviews",
     rating: 8,
     content: "An exhilarating experience! The action sequences were intense, and the plot kept me on the edge of my seat. Kudos to the entire cast for delivering a thrilling performance.",
-    reviewDate: "2023/01/15"
+    reviewDate: "2022/01/15"
   },
 
   {
@@ -39,7 +39,7 @@ export const review : Review[] = [
     reviewerName: "FilmFanatic89",
     rating: 3,
     content: "Regrettably dull. The plot was uninspired, and the action scenes failed to impress. Not worth the hype.",
-    reviewDate: "2023/11/19"
+    reviewDate: "2021/11/19"
   },
 
   // 385687
